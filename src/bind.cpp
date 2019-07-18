@@ -17,7 +17,7 @@ bind_t::bind_t()
 	this->restart_cnt = 0;
 }
 
-int bind_t::load()
+int bind_mgr_t::load()
 {
 	xr::xml_t xml_parser;
 	if (0 != xml_parser.open(s_bind_path)){
