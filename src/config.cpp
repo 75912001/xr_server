@@ -1,7 +1,5 @@
 #include "config.h"
 
-
-
 namespace xr_server{
 config_t* g_config;
 int config_t::load(const char* config_path)
@@ -26,13 +24,13 @@ int config_t::load(const char* config_path)
 	this->file_ini.get("core", "size", this->core_size);
 	this->file_ini.get("core", "restart_cnt_max", this->restart_cnt_max);
 
-	this->file_ini.get("multicast", "incoming_if", this->mcast_incoming_if);
-	this->file_ini.get("multicast", "outgoing_if", this->mcast_outgoing_if);
+	this->file_ini.get("multicast", "in_if", this->mcast_in_if);
+	this->file_ini.get("multicast", "out_if", this->mcast_out_if);
 	this->file_ini.get("multicast", "ip", this->mcast_ip);
 	this->file_ini.get("multicast", "port", this->mcast_port);
 
-	this->file_ini.get("addr_multicast", "incoming_if", this->addr_mcast_incoming_if);
-	this->file_ini.get("addr_multicast", "outgoing_if", this->addr_mcast_outgoing_if);
+	this->file_ini.get("addr_multicast", "in_if", this->addr_mcast_in_if);
+	this->file_ini.get("addr_multicast", "out_if", this->addr_mcast_out_if);
 	this->file_ini.get("addr_multicast", "ip", this->addr_mcast_ip);
 	this->file_ini.get("addr_multicast", "port", this->addr_mcast_port);
 

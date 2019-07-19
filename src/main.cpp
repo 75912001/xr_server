@@ -50,15 +50,14 @@ int main(int argc, char* argv[])
 	{
 		xr_server::g_epoll = new xr_server::epoll_t;
 		if (SUCC != xr_server::g_epoll->create()){
-			std::cout << "??? epoll_t::create" << std::endl;
+			ALERT_LOG("??? epoll_t::create");
 			return FAIL;
 		}
-		xr_server::g_epoll->on_pipe_event = xr_server::parent_t::on_pipe_event;
 	}
 	{
 		xr_server::g_bind_mgr = new xr_server::bind_mgr_t;
 		if (SUCC != xr_server::g_bind_mgr->load()){
-			std::cout << "??? bind.xml load" << std::endl;
+			ALERT_LOG("??? bind.xml load");
 			return FAIL;
 		}
 	}
@@ -71,13 +70,13 @@ int main(int argc, char* argv[])
 	{
 		xr_server::g_dll = new xr_server::dll_t;
 		if (SUCC != xr_server::g_dll->register_plugin(xr_server::g_config->liblogic_path.c_str())){
-			std::cout << "??? dll register_plugin" << std::endl;
+			ALERT_LOG("??? dll register_plugin");
 			return FAIL;
 		}
 	}
 	{
 		if (SUCC != xr_server::g_dll->on_tcp_srv.on_init()) {
-			std::cout << "??? FAILED TO INIT PARENT PROCESS" << std::endl;
+			ALERT_LOG("??? FAILED TO INIT PARENT PROCESS");
 			return FAIL;
 		}
 	}
@@ -92,12 +91,12 @@ int main(int argc, char* argv[])
 
 			if (0 != bind.recv_pipe.create()
 				|| 0 != bind.send_pipe.create()){
-				std::cout << "??? pipe create err" << std::endl;
+				ALERT_LOG("??? pipe create err");
 				return FAIL;
 			}
 			pid_t pid;
 			if ( (pid = fork()) < 0 ) {
-				std::cout << "??? fork child process err id:" << bind.id << std::endl;
+				ALERT_LOG("??? fork child process err id:%u", bind.id);
 				return FAIL;
 			} else if (pid > 0) {//父进程
 				xr_server::g_bind_mgr->bind_vec[i].recv_pipe.close(xr::E_PIPE_INDEX_RDONLY);
@@ -115,13 +114,13 @@ int main(int argc, char* argv[])
 	}
 	xr_server::g_parent->killall_children();
 	{
-		SAFE_DELETE(xr_server::g_config);
-		SAFE_DELETE(xr::g_log);
-		SAFE_DELETE(xr::g_timer);
-		SAFE_DELETE(xr_server::g_bind_mgr);
 		SAFE_DELETE(xr_server::g_dll);
 		SAFE_DELETE(xr_server::g_parent);
+		SAFE_DELETE(xr_server::g_bind_mgr);
 		SAFE_DELETE(xr_server::g_epoll);
+		SAFE_DELETE(xr::g_timer);
+		SAFE_DELETE(xr::g_log);
+		SAFE_DELETE(xr_server::g_config);
 	}
 	return ret;
 }

@@ -7,9 +7,7 @@
 #include <xr_tcp_server.h>
 
 namespace xr_server{
-	class udp_t
-	{
-	public:
+	struct udp_t{
 		void handle_peer_mcast_msg(xr::tcp_peer_t& tcp_peer);
 		void handle_peer_add_mcast_msg(xr::tcp_peer_t& tcp_peer);
 		void handle_peer_udp_msg(xr::tcp_peer_t& tcp_peer);

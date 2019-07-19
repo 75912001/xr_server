@@ -6,9 +6,7 @@
 
 namespace xr_server{
 
-	class config_t
-	{
-	public:
+	struct config_t{
 		config_t();
 		std::string liblogic_path;//代码段so路径
 
@@ -23,16 +21,16 @@ namespace xr_server{
 		uint32_t core_size;//core文件的大小，字节.默认2147483648U
 		uint32_t restart_cnt_max;//最大重启次数.默认100
 
-		std::string mcast_incoming_if;//组播 接收//默认为0
-		std::string mcast_outgoing_if;//组播 发送//默认为0
+		std::string mcast_in_if;//组播 接收//默认为0
+		std::string mcast_out_if;//组播 发送//默认为0
 		std::string mcast_ip;//239.X.X.X组播地址//默认为0
 		uint32_t mcast_port;//239.X.X.X组播端口//默认为0
 
-		std::string addr_mcast_incoming_if;//地址信息 组播 接收//默认为0
-		std::string addr_mcast_outgoing_if;//地址信息 组播 发送//默认为0
+		std::string addr_mcast_in_if;//地址信息 组播 接收//默认为0
+		std::string addr_mcast_out_if;//地址信息 组播 发送//默认为0
 		std::string addr_mcast_ip;//239.X.X.X地址信息 组播地址//默认为0
 		uint32_t addr_mcast_port;//239.X.X.X地址信息 组播端口//默认为0
-	public:
+
 		//so调用获取配置项config.ini中的数据(自行配置)
 		//获取配置项数据
 		std::string get_val_str(const char* section, const char* name);

@@ -3,12 +3,11 @@
 #include "multicast.h"
 
 namespace {
-	const uint32_t RECV_BUF_LEN = 1024*1024*10;//1024K*10
+	const uint32_t RECV_BUF_LEN = 1024*1024;//1024K
 	char recv_buf_tmp[RECV_BUF_LEN] = {0};
 	//接收对方消息
 	//return	int 0:断开 >0:接收的数据长度
-	int recv_peer_msg(xr::tcp_peer_t& tcp_peer)
-	{
+	int recv_peer_msg(xr::tcp_peer_t& tcp_peer){
 		int len = 0;
 
 		int sum_len = 0;
@@ -34,15 +33,15 @@ namespace {
 
 	//接收对方消息
 	//return	int 接收的数据长度
-	int recv_peer_udp_msg(xr::tcp_peer_t& tcp_peer, sockaddr_in& peer_addr)
-	{
+	int recv_peer_udp_msg(xr::tcp_peer_t& tcp_peer, sockaddr_in& peer_addr){
 		socklen_t from_len = sizeof(sockaddr_in);
 		int len = HANDLE_EINTR(::recvfrom(tcp_peer.fd, recv_buf_tmp, sizeof(recv_buf_tmp), 0,
 			(sockaddr*)&(peer_addr), &from_len));
-		tcp_peer.recv_buf.write(recv_buf_tmp, len);
+		if (0 < len){
+			tcp_peer.recv_buf.write(recv_buf_tmp, len);
+		}
 		return len;
 	}
-
 }//end namespace 
 
 namespace xr_server{

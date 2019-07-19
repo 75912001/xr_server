@@ -162,7 +162,7 @@ void parent_t::prase_args( int argc, char** argv )
 
 parent_t::~parent_t()
 {
-	if (2 == this->state && !this->prog_name.empty()) {
+	if (PARENT_STATE_RESTART == this->state && !this->prog_name.empty()) {
 		this->killall_children();
 
 		ALERT_LOG("SERVER RESTARTING...");
@@ -250,11 +250,11 @@ int parent_t::on_pipe_event( int fd, epoll_event& r_evs )
 			// Parent Crashed
 			CRITI_LOG("parent process crashed!");
 			g_parent->state = PARENT_STATE_STOP;
-			return 0;
+			return SUCC;
 		}
 	} else {
 		CRITI_LOG("unuse ???[]");
 	}
-	return 0;
+	return SUCC;
 }
 }//end namespace xr_server

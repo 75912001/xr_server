@@ -8,12 +8,8 @@
 #include "config.h"
 #include <xr_ecode.h>
 
-
-
-
-
 namespace {
-	const uint32_t RECV_BUF_LEN = 1024*1024*10;//1024K*10
+	const uint32_t RECV_BUF_LEN = 1024*1024;//1024K
 	char recv_buf_tmp[RECV_BUF_LEN] = {0};
 	//接收对方消息
 	//return	int 0:断开 >0:接收的数据长度
@@ -41,18 +37,6 @@ namespace {
 		}
 		return sum_len;
 	}
-
-	//接收对方消息
-	//return	int 接收的数据长度
-	int recv_peer_udp_msg(xr::tcp_peer_t& tcp_peer, sockaddr_in& peer_addr)
-	{
-		socklen_t from_len = sizeof(sockaddr_in);
-		int len = HANDLE_EINTR(::recvfrom(tcp_peer.fd, recv_buf_tmp, sizeof(recv_buf_tmp), 0,
-			(sockaddr*)&(peer_addr), &from_len));
-		tcp_peer.recv_buf.write(recv_buf_tmp, len);
-		return len;
-	}
-
 }//end namespace 
 
 namespace xr_server{
@@ -60,17 +44,17 @@ epoll_t* g_epoll;
 int epoll_t::run()
 {
 	int event_num = 0;//事件的数量
-	epoll_event evs[this->cli_fd_value_max];
+	epoll_event evs[g_config->max_fd_num];
 #ifndef EL_ASYNC_USE_THREAD
 	while(likely(PARENT_STATE_RUN == g_parent->state) || g_dll->on_tcp_srv.on_fini()){
 #else
 	while(likely(PARENT_STATE_RUN == g_parent->state)){
 #endif//EL_ASYNC_USE_THREAD
-		event_num = HANDLE_EINTR(::epoll_wait(this->fd, evs, this->cli_fd_value_max, 40));
+		event_num = HANDLE_EINTR(::epoll_wait(this->fd, evs, g_config->max_fd_num, 40));
 #ifndef EL_ASYNC_USE_THREAD
 		xr::g_timer->renew_time();
 		if (!g_is_parent){
-			g_addr_mcast->syn_info();
+			g_addr_mcast->syn();
 		}
 		g_dll->on_tcp_srv.on_events();
 #else
@@ -87,7 +71,7 @@ int epoll_t::run()
 			xr::tcp_peer_t& fd_info = this->tcp_peer[evs[i].data.fd];
 			uint32_t events = evs[i].events;
 			if ( unlikely(xr::FD_TYPE_PIPE == fd_info.fd_type) ) {
-				if (0 == this->on_pipe_event(fd_info.fd, evs[i])) {
+				if (SUCC == parent_t::on_pipe_event(fd_info.fd, evs[i])) {
 					continue;
 				} else {
 					return ERR;
@@ -96,7 +80,7 @@ int epoll_t::run()
 			//可读或可写(可同时发生,并不互斥)
 			if(EPOLLOUT & events){//该套接字可写
 				if (this->handle_send(fd_info) < 0){
-					CRITI_LOG("EPOLLOUT fd:%d", fd_info.fd);
+					ERROR_LOG("EPOLLOUT fd:%d", fd_info.fd);
 					this->close_peer(fd_info);
 					continue;
 				}
@@ -113,15 +97,16 @@ int epoll_t::run()
 					this->handle_peer_msg(fd_info);
 					break;
 				case xr::FD_TYPE_MCAST:
-					//this->handle_peer_mcast_msg(fd_info);
+					this->handle_peer_mcast_msg(fd_info);
 					break;
 				case xr::FD_TYPE_ADDR_MCAST:
-					//this->handle_peer_add_mcast_msg(fd_info);
+					this->handle_peer_add_mcast_msg(fd_info);
 					break;
 				case xr::FD_TYPE_UDP:
-					//this->handle_peer_udp_msg(fd_info);
+					this->handle_peer_udp_msg(fd_info);
 					break;
 				default:
+					ERROR_LOG("");
 					break;
 				}
 			}
@@ -143,7 +128,7 @@ int epoll_t::run()
 				//write时，出EPOLLERR错，说明对方已经异常断开
 				//EPOLLERR 是服务器这边出错(自己出错当然能检测到,对方出错你咋能
 				//直到啊)
-				CRITI_LOG("EPOLLERR fd:%d", fd_info.fd);
+				ERROR_LOG("EPOLLERR fd:%d", fd_info.fd);
 				this->close_peer(fd_info);
 				continue;
 			}
@@ -161,7 +146,7 @@ int epoll_t::run()
 				//对端close
 				//EPOLLRDHUP = 0x2000,
 				//#define EPOLLRDHUP EPOLLRDHUP
-				CRITI_LOG("EPOLLRDHUP fd:%d", fd_info.fd);
+				ERROR_LOG("EPOLLRDHUP fd:%d", fd_info.fd);
 				this->close_peer(fd_info);
 				// After receiving EPOLLRDHUP or EPOLLHUP, we can still read data from the fd until
 				// read() returns 0 indicating EOF is reached. So, we should alway call read on receving
@@ -182,7 +167,6 @@ int epoll_t::run()
 epoll_t::epoll_t()
 {
 	this->cli_fd_value_max = g_config->max_fd_num;
-	this->on_pipe_event = NULL;
 }
 
 int epoll_t::listen(const char* ip,
@@ -244,15 +228,15 @@ int epoll_t::listen(const char* ip,
 
 int epoll_t::create()
 {
-	if ((this->fd = ::epoll_create(this->cli_fd_value_max)) < 0) {
+	if ((this->fd = ::epoll_create(g_config->max_fd_num)) < 0) {
 		ALERT_LOG("EPOLL_CREATE FAILED [ERROR:%s]", strerror (errno));
 		return FAIL;
 	}
 
-	this->tcp_peer = (xr::tcp_peer_t*) new xr::tcp_peer_t[this->cli_fd_value_max];
+	this->tcp_peer = (xr::tcp_peer_t*) new xr::tcp_peer_t[g_config->max_fd_num];
 	if (NULL == this->tcp_peer){
 		xr::file_t::close_fd(this->fd);
-		ALERT_LOG ("CALLOC CLI_FD_INFO_T FAILED [MAXEVENTS=%d]", this->cli_fd_value_max);
+		ALERT_LOG ("CALLOC CLI_FD_INFO_T FAILED [MAXEVENTS=%d]", g_config->max_fd_num);
 		return FAIL;
 	}
 	return SUCC;
@@ -266,7 +250,7 @@ int epoll_t::add_events( int fd, uint32_t flag )
 
 	int ret = HANDLE_EINTR(::epoll_ctl(this->fd, EPOLL_CTL_ADD, fd, &ev));
 	if (0 != ret){
-		CRITI_LOG ("epoll_ctl add fd:%d error:%s", fd, strerror(errno));
+		ERROR_LOG ("epoll_ctl add fd:%d error:%s", fd, strerror(errno));
 		return FAIL;
 	}
 
@@ -289,7 +273,7 @@ xr::tcp_peer_t* epoll_t::add_connect( int fd,
 	}
 
 	if (0 != this->add_events(fd, flag)) {
-		CRITI_LOG("add events err [fd:%d, flag:%u]", fd, flag);
+		ERROR_LOG("add events err [fd:%d, flag:%u]", fd, flag);
 		return NULL;
 	}
 
@@ -312,7 +296,7 @@ void epoll_t::handle_peer_msg( xr::tcp_peer_t& tcp_peer )
 		while (0 != (available_len = g_dll->on_tcp_srv.on_get_pkg_len(&tcp_peer,
 			tcp_peer.recv_buf.data, tcp_peer.recv_buf.write_pos))){	
 			if (-1 == available_len){
-				CRITI_LOG("close socket! available_len [fd:%d, ip:%s, port:%u]",
+				ERROR_LOG("close socket! available_len [fd:%d, ip:%s, port:%u]",
 					tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 				this->close_peer(tcp_peer);
 				break;
@@ -335,7 +319,7 @@ void epoll_t::handle_peer_msg( xr::tcp_peer_t& tcp_peer )
 				break;
 			}
 		}
-	}else if (0 == ret || -1 == ret){
+	}else {
 		INFOR_LOG("close socket by peer [fd:%d, ip:%s, port:%u, ret:%d]", 
 			tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port, ret);
 		this->close_peer(tcp_peer);
@@ -349,8 +333,8 @@ void epoll_t::handle_listen()
 	::memset(&peer, 0, sizeof(peer));
 	int peer_fd = this->accept(peer, g_config->page_size_max,
 		g_config->page_size_max);
-	if (unlikely(peer_fd < 0) || unlikely(peer_fd >= this->cli_fd_value_max)){
-		ALERT_LOG("accept err [%s] fd:%d", ::strerror(errno), peer_fd);
+	if (unlikely(peer_fd < 0) || unlikely(peer_fd >= g_config->max_fd_num)){
+		WARNI_LOG("accept err [%s] fd:%d", ::strerror(errno), peer_fd);
 		if (peer_fd > 0){
 			xr::file_t::close_fd(peer_fd);
 		}
@@ -404,7 +388,7 @@ int epoll_t::mod_events( int fd, uint32_t flag )
 
 	int ret = HANDLE_EINTR(::epoll_ctl(this->fd, EPOLL_CTL_MOD, fd, &ev));
 	if (0 != ret){
-		CRITI_LOG ("epoll_ctl mod fd:%d error:%s", fd, strerror(errno));
+		ERROR_LOG("epoll_ctl mod fd:%d error:%s", fd, strerror(errno));
 		return FAIL;
 	}
 	return SUCC; 
@@ -433,7 +417,7 @@ void epoll_t::close_peer( xr::tcp_peer_t& tcp_peer, bool do_calback /*= true*/ )
 	epoll_event ev;
 	int ret = HANDLE_EINTR(::epoll_ctl(this->fd, EPOLL_CTL_DEL, tcp_peer.fd, &ev));
 	if (0 != ret){
-		CRITI_LOG ("epoll_ctl del fd:%d error:%s", tcp_peer.fd, strerror(errno));
+		ERROR_LOG("epoll_ctl del fd:%d error:%s", tcp_peer.fd, strerror(errno));
 	}
 
 	tcp_peer.close();

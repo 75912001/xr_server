@@ -1,8 +1,6 @@
 #include "dll.h"
 #include <xr_log.h>
 
-
-
 namespace {
 	#define DLFUNC(v, name) \
 	{\
@@ -21,7 +19,7 @@ dll_t* g_dll;
 int dll_t::register_plugin(const char* liblogic_path)
 {
 	char* error; 
-	int   ret_code = ERR;
+	int   ret_code = FAIL;
 
 	this->handle = dlopen(liblogic_path, RTLD_NOW);
 	if ((error = dlerror()) != NULL) {

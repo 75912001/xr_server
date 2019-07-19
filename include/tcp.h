@@ -8,10 +8,8 @@
 #include "parent.h"
 
 namespace xr_server{
-	class epoll_t : public xr::tcp_srv_t
-	{
+	class epoll_t : public xr::tcp_srv_t{
 	public:
-		ON_PIPE_EVENT on_pipe_event;
 		epoll_t();
 		virtual int create();
 
@@ -38,4 +36,3 @@ namespace xr_server{
 	};
 	extern epoll_t* g_epoll;
 }//end namespace xr_server
-

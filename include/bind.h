@@ -22,12 +22,9 @@ namespace xr_server{
 		bind_t();
 	};
 
-	class bind_mgr_t
+	struct bind_mgr_t
 	{
-	public:
 		std::vector<bind_t> bind_vec;
-		bind_t* bind;
-	public:
 		//加载配置文件
 		//returns:SUCC:success.负数:error
 		int load();

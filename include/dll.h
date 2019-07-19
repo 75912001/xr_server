@@ -17,6 +17,3 @@ namespace xr_server{
 	};
 	extern dll_t* g_dll;
 }//end namespace xr_server
-
-
-

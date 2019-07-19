@@ -7,7 +7,6 @@ namespace xr_server{
 	static const uint8_t PARENT_STATE_STOP = 0;
 	static const uint8_t PARENT_STATE_RUN = 1;
 	static const uint8_t PARENT_STATE_RESTART = 2;
-	typedef int (*ON_PIPE_EVENT)(int fd, epoll_event& r_evs);
 	class parent_t
 	{
 	public:
