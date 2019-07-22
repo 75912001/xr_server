@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<root>
+<!--
+		uint32_t	id;
+		char		name[32];
+		char		ip[16];
+		uint16_t	port;
+		char		data[32];
+-->
+	<server id="1" name="online" ip="192.168.0.66" port="60001"  data=""/>
+</root>
