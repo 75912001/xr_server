@@ -7,6 +7,7 @@
 #include "multicast.h"
 #include "config.h"
 #include <xr_ecode.h>
+#include "udp.h"
 
 namespace {
 	const uint32_t RECV_BUF_LEN = 1024*1024;//1024K
@@ -97,13 +98,13 @@ int epoll_t::run()
 					this->handle_peer_msg(fd_info);
 					break;
 				case xr::FD_TYPE_MCAST:
-					this->handle_peer_mcast_msg(fd_info);
+					udp_t::handle_peer_mcast_msg(fd_info);
 					break;
 				case xr::FD_TYPE_ADDR_MCAST:
-					this->handle_peer_add_mcast_msg(fd_info);
+					udp_t::handle_peer_add_mcast_msg(fd_info);
 					break;
 				case xr::FD_TYPE_UDP:
-					this->handle_peer_udp_msg(fd_info);
+					udp_t::handle_peer_udp_msg(fd_info);
 					break;
 				default:
 					ERROR_LOG("");
@@ -333,7 +334,7 @@ void epoll_t::handle_listen()
 	::memset(&peer, 0, sizeof(peer));
 	int peer_fd = this->accept(peer, g_config->page_size_max,
 		g_config->page_size_max);
-	if (unlikely(peer_fd < 0) || unlikely(peer_fd >= g_config->max_fd_num)){
+	if (unlikely(peer_fd < 0) || unlikely(peer_fd >= (int)g_config->max_fd_num)){
 		WARNI_LOG("accept err [%s] fd:%d", ::strerror(errno), peer_fd);
 		if (peer_fd > 0){
 			xr::file_t::close_fd(peer_fd);

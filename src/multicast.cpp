@@ -4,8 +4,9 @@
 #include <xr_timer.h>
 #include "dll.h"
 #include <xr_log.h>
+#include "child.h"
 
-
+namespace{
 	const uint32_t ADDR_MCAST_SYN_TIME_OUT_SEC = 60;//同步地址超时秒数
 }//end namespace 
 
@@ -22,8 +23,8 @@ void addr_mcast_t::mcast_notify_addr( E_MCAST_CMD pkg_type )
 	mcast_pkg_header_t hdr;
 	char* data = new char[sizeof(hdr) + sizeof(pkg)];
 	hdr.cmd = pkg_type;
-	pkg.svr_id     = g_child->bind->id;
-	::strncpy(pkg.name, g_child->bind->name.c_str(), std::min(sizeof(pkg.name), g_child->bind->name.size());
+	pkg.svr_id = g_child->bind->id;
+	::strncpy(pkg.name, g_child->bind->name.c_str(), std::min(sizeof(pkg.name), g_child->bind->name.size()));
 	::strncpy(pkg.ip, g_child->bind->ip.c_str(), std::min(sizeof(pkg.ip), g_child->bind->ip.size()));
 	pkg.port = g_child->bind->port;
 	::strncpy(pkg.data, g_child->bind->data.c_str(), std::min(sizeof(pkg.data), g_child->bind->data.size()));

@@ -7,6 +7,8 @@
 #include "tcp.h"
 #include "dll.h"
 #include "bind.h"
+#include <xr_multicast.h>
+#include "multicast.h"
 
 namespace xr_server{
 child_t* g_child;
@@ -62,9 +64,9 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 	}
 	//创建组播
 	if (!g_config->mcast_ip.empty()){
-		if (SUCC != xr::g_mcast->create(g_config->mcast_ip, 
-			g_config->mcast_port, g_config->mcast_in_if,
-			g_config->mcast_out_if)){
+		if (SUCC != xr::g_mcast->create(g_config->mcast_ip.c_str(), 
+			g_config->mcast_port, g_config->mcast_in_if.c_str(),
+			g_config->mcast_out_if.c_str())){
 			ALERT_LOG("mcast.create err[ip:%s]", g_config->mcast_ip.c_str());
 			return;
 		}else{
@@ -78,9 +80,9 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 		g_addr_mcast = new addr_mcast_t;
 	}
 	if (!g_config->addr_mcast_ip.empty()){
-		if (SUCC != g_addr_mcast->create(g_config->addr_mcast_ip,
-			g_config->addr_mcast_port, g_config->addr_mcast_in_if,
-			g_config->addr_mcast_out_if)){
+		if (SUCC != g_addr_mcast->create(g_config->addr_mcast_ip.c_str(),
+			g_config->addr_mcast_port, g_config->addr_mcast_in_if.c_str(),
+			g_config->addr_mcast_out_if.c_str())){
 			ALERT_LOG("addr mcast.create err [ip:%s]", g_config->addr_mcast_ip.c_str());
 			return;
 		} else {

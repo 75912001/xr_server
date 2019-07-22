@@ -8,8 +8,8 @@
 
 namespace xr_server{
 	struct udp_t{
-		void handle_peer_mcast_msg(xr::tcp_peer_t& tcp_peer);
-		void handle_peer_add_mcast_msg(xr::tcp_peer_t& tcp_peer);
-		void handle_peer_udp_msg(xr::tcp_peer_t& tcp_peer);
+		static void handle_peer_mcast_msg(xr::tcp_peer_t& tcp_peer);
+		static void handle_peer_add_mcast_msg(xr::tcp_peer_t& tcp_peer);
+		static void handle_peer_udp_msg(xr::tcp_peer_t& tcp_peer);
 	};
 }//end namespace xr_server
