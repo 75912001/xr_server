@@ -47,7 +47,7 @@ struct proto_head_t
 		PROTO_RET* pret = (PROTO_RET*)(pseq + sizeof(PROTO_SEQ));
 		*pret = result;
 	}
-	static inline void unpack(const void* data)
+	inline void unpack(const void* data)
     {
 		PROTO_LEN* plen = (PROTO_LEN*)data;
 		this->len = *plen;
@@ -64,10 +64,10 @@ struct proto_head_t
 		PROTO_RET* pret = (PROTO_RET*)(pseq + sizeof(PROTO_SEQ));
 		this->ret = *pret;
 	}
-    static inline PROTO_LEN get_all_len(){
+    inline PROTO_LEN get_all_len(){
         return this->len;
     }
-    static inline PROTO_LEN get_body_len(){
+    inline PROTO_LEN get_body_len(){
         return this->len - proto_head_t::PROTO_HEAD_LEN;
     }
 };
