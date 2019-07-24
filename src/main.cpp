@@ -20,11 +20,17 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < argc; i++){
 			std::string str = argv[i];
 			argvs.push_back(str);
-     	   std::cout << str << std::endl;
 		}
 		if (argvs.size() < 2){
        	 std::cout <<"??? agrv num" << std::endl;
        	 return FAIL;
+		}
+	}
+	{
+		xr_server::g_bind_mgr = new xr_server::bind_mgr_t;
+		if (SUCC != xr_server::g_bind_mgr->load()){
+			std::cout << "??? bind.xml load" << std::endl;
+			return FAIL;
 		}
 	}
 	{
@@ -35,9 +41,14 @@ int main(int argc, char* argv[])
 		}
 	}
 	{
+		xr_server::g_parent = new xr_server::parent_t;
+		xr_server::g_parent->child_pids = new std::atomic_int[xr_server::g_bind_mgr->bind_vec.size()];
+ 		xr_server::g_parent->prase_args(argc, argv);
+	}
+	{
 		xr::g_log = new xr::log_t;
 		int ret = xr::g_log->init(xr_server::g_config->log_dir.c_str(), 
-			(xr::E_LOG_LEVEL)xr_server::g_config->log_level, NULL,
+			(xr::E_LOG_LEVEL)xr_server::g_config->log_level, "parent_",
 			xr_server::g_config->log_save_next_file_interval_min);
 		if (SUCC != ret){
 			std::cout << "??? log init" << std::endl;
@@ -53,19 +64,6 @@ int main(int argc, char* argv[])
 			ALERT_LOG("??? epoll_t::create");
 			return FAIL;
 		}
-	}
-	{
-		xr_server::g_bind_mgr = new xr_server::bind_mgr_t;
-		if (SUCC != xr_server::g_bind_mgr->load()){
-			ALERT_LOG("??? bind.xml load");
-			return FAIL;
-		}
-	}
-	{
-		xr_server::g_parent = new xr_server::parent_t;
-		xr_server::g_parent->child_pids = new std::atomic_int[xr_server::g_bind_mgr->bind_vec.size()];
-
-		xr_server::g_parent->prase_args(argc, argv);
 	}
 	{
 		xr_server::g_dll = new xr_server::dll_t;
@@ -86,6 +84,7 @@ int main(int argc, char* argv[])
 		::open("/dev/null", O_RDWR);
 	}
 	{
+		
 		for (uint32_t i = 0; i != xr_server::g_bind_mgr->bind_vec.size(); ++i ) {
 			xr_server::bind_t& bind = xr_server::g_bind_mgr->bind_vec[i];
 
@@ -103,15 +102,18 @@ int main(int argc, char* argv[])
 				xr_server::g_bind_mgr->bind_vec[i].send_pipe.close(xr::E_PIPE_INDEX_WRONLY);
 				xr_server::g_epoll->add_connect(bind.send_pipe.read_fd(), xr::FD_TYPE_PIPE, NULL, 0);
 				xr_server::g_parent->child_pids[i] = pid;
-
-				xr_server::g_epoll->run();
 			} else {
 				//子进程
+				xr_server::g_child = new xr_server::child_t;
 				xr_server::g_child->run(&bind, i + 1);
+				SAFE_DELETE(xr_server::g_child);
 				return SUCC;
 			}
 		}
 	}
+
+	xr_server::g_epoll->run();
+
 	xr_server::g_parent->killall_children();
 	{
 		SAFE_DELETE(xr_server::g_dll);
@@ -122,5 +124,6 @@ int main(int argc, char* argv[])
 		SAFE_DELETE(xr::g_log);
 		SAFE_DELETE(xr_server::g_config);
 	}
+	
 	return ret;
 }

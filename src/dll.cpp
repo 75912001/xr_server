@@ -23,7 +23,8 @@ int dll_t::register_plugin(const char* liblogic_path)
 
 	this->handle = dlopen(liblogic_path, RTLD_NOW);
 	if ((error = dlerror()) != NULL) {
-		BOOT_LOG(ret_code, "DLOPEN ERROR [error:%s]", error);
+		BOOT_LOG(ret_code, "DLOPEN ERROR [error:%s,%s]", error, liblogic_path);
+		return ret_code;
 	}
 
     DLFUNC(this->on_tcp_srv.on_events, "on_events"); 
@@ -43,6 +44,7 @@ int dll_t::register_plugin(const char* liblogic_path)
 out:
 	BOOT_LOG(ret_code, "dlopen [file name:%s, state:%s]",
 		liblogic_path, (0 != ret_code ? "FAIL" : "OK"));
+	return ret_code;
 }
 
 dll_t::dll_t()

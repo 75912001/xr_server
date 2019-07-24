@@ -21,7 +21,7 @@ int bind_mgr_t::load()
 {
 	xr::xml_t xml;
 	if (0 != xml.open(s_bind_path)){
-		ALERT_LOG("open file [%s]", s_bind_path);
+		BOOT_LOG(FAIL, "open file [%s]", s_bind_path);
 		return FAIL;
 	}
 
@@ -37,9 +37,6 @@ int bind_mgr_t::load()
 			xml.get_prop(cur, "ip", bind.ip);
 			bind.port = xml.get_prop(cur, "port");
 			xml.get_prop(cur, "data", bind.data);
-			INFOR_LOG("server [id:%d, name:%s, ip:%s, port:%d, data:%s]",
-				bind.id, bind.name.c_str(),
-				bind.ip.c_str(), bind.port, bind.data.c_str());
 			this->bind_vec.push_back(bind);
 		}
 		cur = cur->next;

@@ -51,6 +51,7 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 		xr::g_log->boot(ERR, 0, "server listen err [ip:%s, port:%u]", this->bind->ip.c_str(), this->bind->port);
 		return;
 	}
+	xr::g_log->boot(SUCC, 0, "server listen [ip:%s, port:%u]", this->bind->ip.c_str(), this->bind->port);
 
 #ifndef EL_ASYNC_USE_THREAD
 	if ( SUCC != g_dll->on_tcp_srv.on_init()) {

@@ -28,14 +28,14 @@ namespace {
 	void sigterm_handler(int signo) 
 	{
 		//停止服务（不重启）
-		CRITI_LOG("SIG_TERM FROM [stop:true, restart:false]");
+		CRITI_LOG("SIG_TERM FROM [stop:true]");
 		xr_server::g_parent->state = xr_server::PARENT_STATE_STOP;
 	}
 
 	void sighup_handler(int signo) 
 	{
 		//停止&&重启服务
-		CRITI_LOG("SIGHUP FROM [restart:true, stop:true]");
+		CRITI_LOG("SIGHUP FROM [restart:true]");
 
 		xr_server::g_parent->state = xr_server::PARENT_STATE_RESTART;
 	}
@@ -156,7 +156,6 @@ void parent_t::prase_args( int argc, char** argv )
 			g_argvs.push_back(str);
 		}
 	}
-	
 	daemon(1, 1);
 }
 
@@ -216,7 +215,9 @@ void parent_t::restart_child_process( bind_t* bind, uint32_t bind_idx)
 		this->child_pids[bind_idx] = pid;
 	} else { 
 		//child
+		g_child = new child_t;
 		g_child->run(&g_bind_mgr->bind_vec[bind_idx], g_bind_mgr->bind_vec.size());
+		SAFE_DELETE(g_child);
 	}
 }
 
