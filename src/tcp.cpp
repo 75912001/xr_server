@@ -296,14 +296,14 @@ void epoll_t::handle_peer_msg( xr::tcp_peer_t& tcp_peer )
 		int available_len = 0;
 		while (0 != (available_len = g_dll->on_tcp_srv.on_get_pkg_len(&tcp_peer,
 			tcp_peer.recv_buf.data, tcp_peer.recv_buf.write_pos))){	
-			if ((int)xr::ECODE_SYS::DISCONNECT_PEER == available_len){
+			if ((int)xr::ECODE::DISCONNECT_PEER == available_len){
 				ERROR_LOG("close socket! available_len [fd:%d, ip:%s, port:%u]",
 					tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 				this->close_peer(tcp_peer);
 				break;
 			} else if (available_len > 0 && (int)tcp_peer.recv_buf.write_pos >= available_len){
 				if (xr::FD_TYPE_CLI == tcp_peer.fd_type){
-					if ((int)xr::ECODE_SYS::DISCONNECT_PEER == g_dll->on_tcp_srv.on_cli_pkg(&tcp_peer, tcp_peer.recv_buf.data, available_len)){
+					if ((int)xr::ECODE::DISCONNECT_PEER == g_dll->on_tcp_srv.on_cli_pkg(&tcp_peer, tcp_peer.recv_buf.data, available_len)){
 						WARNI_LOG("close socket! ret [fd:%d, ip:%s, port:%u]",
 							tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 						this->close_peer(tcp_peer);
