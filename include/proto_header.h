@@ -7,13 +7,12 @@ typedef uint32_t PROTO_LEN;
 typedef uint32_t PROTO_CMD;
 typedef uint64_t PROTO_UID;
 typedef uint32_t PROTO_SEQ;
-typedef uint32_t PROTO_RET;
+typedef uint16_t PROTO_RET;
 
 #pragma pack(1)
 //协议包头	
-struct proto_head_t
-{
-    static const uint32_t PROTO_HEAD_LEN = 24;
+struct proto_head_t{
+    static const uint32_t PROTO_HEAD_LEN = 22;
 
     PROTO_LEN len;    //报文总长度.长度=包头+包体长度		
 	PROTO_CMD cmd;    //命令号	

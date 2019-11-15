@@ -6,7 +6,7 @@
 #include <xr_timer.h>
 #include "multicast.h"
 #include "config.h"
-#include <xr_ecode.h>
+#include <xr_error.h>
 #include "udp.h"
 
 namespace {
@@ -64,14 +64,14 @@ int epoll_t::run()
 		if (0 == event_num){//time out
 			continue;
 		}else if (unlikely(-1 == event_num)){
-			ALERT_LOG("epoll wait err [%s]", ::strerror(errno));
+			ALERT_LOG("epoll wait err %s", ::strerror(errno));
 			return ERR;
 		}
 		//handling event
 		for (int i = 0; i < event_num; ++i){
 			xr::tcp_peer_t& fd_info = this->tcp_peer[evs[i].data.fd];
 			uint32_t events = evs[i].events;
-			if ( unlikely(xr::FD_TYPE_PIPE == fd_info.fd_type) ) {
+			if ( unlikely(xr::FD_TYPE::PIPE == fd_info.fd_type) ) {
 				if (SUCC == parent_t::on_pipe_event(fd_info.fd, evs[i])) {
 					continue;
 				} else {
@@ -89,21 +89,21 @@ int epoll_t::run()
 			if(EPOLLIN & events){//接收并处理其他套接字的数据
 				switch (fd_info.fd_type)
 				{
-				case xr::FD_TYPE_LISTEN:
+				case xr::FD_TYPE::LISTEN:
 					this->handle_listen();
 					continue;
 					break;
-				case xr::FD_TYPE_CLI:
-				case xr::FD_TYPE_SVR:
+				case xr::FD_TYPE::CLIENT:
+				case xr::FD_TYPE::SERVER:
 					this->handle_peer_msg(fd_info);
 					break;
-				case xr::FD_TYPE_MCAST:
+				case xr::FD_TYPE::MCAST:
 					udp_t::handle_peer_mcast_msg(fd_info);
 					break;
-				case xr::FD_TYPE_ADDR_MCAST:
+				case xr::FD_TYPE::ADDR_MCAST:
 					udp_t::handle_peer_add_mcast_msg(fd_info);
 					break;
-				case xr::FD_TYPE_UDP:
+				case xr::FD_TYPE::UDP:
 					udp_t::handle_peer_udp_msg(fd_info);
 					break;
 				default:
@@ -181,7 +181,7 @@ int epoll_t::listen(const char* ip,
 	#endif
 
 	if (INVALID_FD == this->listen_fd){
-		ALERT_LOG("create socket err [%s]", ::strerror(errno));
+		ALERT_LOG("create socket err %s", ::strerror(errno));
 		return FAIL;
 	}
 
@@ -206,19 +206,19 @@ int epoll_t::listen(const char* ip,
 
 	if (SUCC != this->bind(ip, port)){
 		xr::file_t::close_fd(this->listen_fd);
-		ALERT_LOG("bind socket err [%s]", ::strerror(errno));
+		ALERT_LOG("bind socket err %s", ::strerror(errno));
 		return FAIL;
 	}
 
 	if (0 != ::listen(this->listen_fd, listen_num)){
 		xr::file_t::close_fd(this->listen_fd);
-		ALERT_LOG("listen err [%s]", ::strerror(errno));
+		ALERT_LOG("listen err %s", ::strerror(errno));
 		return FAIL;
 	}
 
-	if (NULL == this->add_connect(this->listen_fd, xr::FD_TYPE_LISTEN, ip, port)){
+	if (NULL == this->add_connect(this->listen_fd, xr::FD_TYPE::LISTEN, ip, port)){
 		xr::file_t::close_fd(this->listen_fd);
-		ALERT_LOG("add connect err[%s]", ::strerror(errno));
+		ALERT_LOG("add connect err %s", ::strerror(errno));
 		return FAIL;
 	}
 
@@ -230,14 +230,14 @@ int epoll_t::listen(const char* ip,
 int epoll_t::create()
 {
 	if ((this->fd = ::epoll_create(g_config->max_fd_num)) < 0) {
-		ALERT_LOG("EPOLL_CREATE FAILED [ERROR:%s]", strerror (errno));
+		ALERT_LOG("EPOLL_CREATE FAILED ERROR:%s", strerror (errno));
 		return FAIL;
 	}
 
 	this->tcp_peer = (xr::tcp_peer_t*) new xr::tcp_peer_t[g_config->max_fd_num];
 	if (NULL == this->tcp_peer){
 		xr::file_t::close_fd(this->fd);
-		ALERT_LOG ("CALLOC CLI_FD_INFO_T FAILED [MAXEVENTS=%d]", g_config->max_fd_num);
+		ALERT_LOG ("CALLOC CLI_FD_INFO_T FAILED MAXEVENTS=%d", g_config->max_fd_num);
 		return FAIL;
 	}
 	return SUCC;
@@ -259,7 +259,7 @@ int epoll_t::add_events( int fd, uint32_t flag )
 }
 
 xr::tcp_peer_t* epoll_t::add_connect( int fd,
-	xr::E_FD_TYPE fd_type, const char* ip, uint16_t port )
+	xr::FD_TYPE fd_type, const char* ip, uint16_t port )
 {
 	uint32_t flag;
 
@@ -274,7 +274,7 @@ xr::tcp_peer_t* epoll_t::add_connect( int fd,
 	}
 
 	if (0 != this->add_events(fd, flag)) {
-		ERROR_LOG("add events err [fd:%d, flag:%u]", fd, flag);
+		ERROR_LOG("add events err fd:%d, flag:%u", fd, flag);
 		return NULL;
 	}
 
@@ -296,20 +296,20 @@ void epoll_t::handle_peer_msg( xr::tcp_peer_t& tcp_peer )
 		int available_len = 0;
 		while (0 != (available_len = g_dll->on_tcp_srv.on_get_pkg_len(&tcp_peer,
 			tcp_peer.recv_buf.data, tcp_peer.recv_buf.write_pos))){	
-			if ((int)xr::ECODE::DISCONNECT_PEER == available_len){
-				ERROR_LOG("close socket! available_len [fd:%d, ip:%s, port:%u]",
+			if ((int)xr::ERROR::DISCONNECT_PEER == available_len){
+				ERROR_LOG("close socket! available_len fd:%d, ip:%s, port:%u",
 					tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 				this->close_peer(tcp_peer);
 				break;
 			} else if (available_len > 0 && (int)tcp_peer.recv_buf.write_pos >= available_len){
-				if (xr::FD_TYPE_CLI == tcp_peer.fd_type){
-					if ((int)xr::ECODE::DISCONNECT_PEER == g_dll->on_tcp_srv.on_cli_pkg(&tcp_peer, tcp_peer.recv_buf.data, available_len)){
-						WARNI_LOG("close socket! ret [fd:%d, ip:%s, port:%u]",
+				if (xr::FD_TYPE::CLIENT == tcp_peer.fd_type){
+					if ((int)xr::ERROR::DISCONNECT_PEER == g_dll->on_tcp_srv.on_cli_pkg(&tcp_peer, tcp_peer.recv_buf.data, available_len)){
+						WARNI_LOG("close socket! ret fd:%d, ip:%s, port:%u",
 							tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 						this->close_peer(tcp_peer);
 						break;
 					}
-				} else if (xr::FD_TYPE_SVR == tcp_peer.fd_type){
+				} else if (xr::FD_TYPE::SERVER == tcp_peer.fd_type){
 					g_dll->on_tcp_srv.on_srv_pkg(&tcp_peer, tcp_peer.recv_buf.data, available_len);
 				}
 				tcp_peer.recv_buf.pop(available_len);
@@ -321,7 +321,7 @@ void epoll_t::handle_peer_msg( xr::tcp_peer_t& tcp_peer )
 			}
 		}
 	}else {
-		INFOR_LOG("close socket by peer [fd:%d, ip:%s, port:%u, ret:%d]", 
+		INFOR_LOG("close socket by peer fd:%d, ip:%s, port:%u, ret:%d", 
 			tcp_peer.fd, xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port, ret);
 		this->close_peer(tcp_peer);
 	}
@@ -335,7 +335,7 @@ void epoll_t::handle_listen()
 	int peer_fd = this->accept(peer, g_config->page_size_max,
 		g_config->page_size_max);
 	if (unlikely(peer_fd < 0) || unlikely(peer_fd >= (int)g_config->max_fd_num)){
-		WARNI_LOG("accept err [%s] fd:%d", ::strerror(errno), peer_fd);
+		WARNI_LOG("accept err %s fd:%d", ::strerror(errno), peer_fd);
 		if (peer_fd > 0){
 			xr::file_t::close_fd(peer_fd);
 		}
@@ -343,9 +343,9 @@ void epoll_t::handle_listen()
 		#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27)
 			xr::file_t::set_io_block(peer_fd, false);
 		#endif
-		INFOR_LOG("client accept [ip:%s, port:%u, new_socket:%d]",
+		INFOR_LOG("client accept ip:%s, port:%u, new_socket:%d",
 			inet_ntoa(peer.sin_addr), ntohs(peer.sin_port), peer_fd);
-		xr::tcp_peer_t* tcp_peer = this->add_connect(peer_fd, xr::FD_TYPE_CLI, xr::net_util_t::ip2str(peer.sin_addr.s_addr), ntohs(peer.sin_port));
+		xr::tcp_peer_t* tcp_peer = this->add_connect(peer_fd, xr::FD_TYPE::CLIENT, xr::net_util_t::ip2str(peer.sin_addr.s_addr), ntohs(peer.sin_port));
 		if (NULL != tcp_peer){
 			g_dll->on_tcp_srv.on_cli_conn(tcp_peer);
 		} else {
@@ -401,14 +401,14 @@ void epoll_t::close_peer( xr::tcp_peer_t& tcp_peer, bool do_calback /*= true*/ )
 	tcp_peer.lock_mutex.lock();
 #endif
 	
-	if (xr::FD_TYPE_CLI == tcp_peer.fd_type){
-		INFOR_LOG("close socket cli [fd:%d, ip:%s, port:%u]", tcp_peer.fd, 
+	if (xr::FD_TYPE::CLIENT == tcp_peer.fd_type){
+		INFOR_LOG("close socket cli fd:%d, ip:%s, port:%u", tcp_peer.fd, 
 			xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 		if (do_calback){
 			g_dll->on_tcp_srv.on_cli_conn_closed(tcp_peer.fd);
 		}
-	} else if (xr::FD_TYPE_SVR == tcp_peer.fd_type){
-		INFOR_LOG("close socket svr [fd:%d, ip:%s, port:%u]", tcp_peer.fd, 
+	} else if (xr::FD_TYPE::SERVER == tcp_peer.fd_type){
+		INFOR_LOG("close socket svr fd:%d, ip:%s, port:%u", tcp_peer.fd, 
 			xr::net_util_t::ip2str(tcp_peer.ip), tcp_peer.port);
 		if (do_calback){
 			g_dll->on_tcp_srv.on_svr_conn_closed(tcp_peer.fd);

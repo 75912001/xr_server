@@ -156,7 +156,10 @@ void parent_t::prase_args( int argc, char** argv )
 			g_argvs.push_back(str);
 		}
 	}
-	daemon(1, 1);
+	int r = daemon(1, 1);
+	if (0 == r){
+	} else if (-1 == r){
+	}
 }
 
 parent_t::~parent_t()
@@ -165,7 +168,10 @@ parent_t::~parent_t()
 		this->killall_children();
 
 		ALERT_LOG("SERVER RESTARTING...");
-		::chdir(this->current_dir.c_str());
+		int r = ::chdir(this->current_dir.c_str());
+		if (0 == r){
+		} else if (-1 == r){
+		}
 		char* argvs[200];
 		int i = 0;
 		FOREACH(g_argvs, it){
@@ -211,7 +217,7 @@ void parent_t::restart_child_process( bind_t* bind, uint32_t bind_idx)
 		//parent
 		g_bind_mgr->bind_vec[bind_idx].recv_pipe.close(xr::E_PIPE_INDEX_RDONLY);
 		g_bind_mgr->bind_vec[bind_idx].send_pipe.close(xr::E_PIPE_INDEX_WRONLY);
-		g_epoll->add_connect(bind->send_pipe.read_fd(), xr::FD_TYPE_PIPE, NULL, 0);
+		g_epoll->add_connect(bind->send_pipe.read_fd(), xr::FD_TYPE::PIPE, NULL, 0);
 		this->child_pids[bind_idx] = pid;
 	} else { 
 		//child

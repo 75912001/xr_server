@@ -23,7 +23,7 @@ namespace xr_server{
 		virtual int listen(const char* ip, uint16_t port, uint32_t listen_num, int bufsize);
 		virtual int run();
 		virtual xr::tcp_peer_t* add_connect(int fd, 
-			xr::E_FD_TYPE fd_type, const char* ip, uint16_t port);
+			xr::FD_TYPE fd_type, const char* ip, uint16_t port);
 		int mod_events(int fd, uint32_t flag);
 		int add_events(int fd, uint32_t flag);
 		//关闭连接

@@ -44,7 +44,7 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 		g_bind_mgr->bind_vec[i].send_pipe.close(xr::E_PIPE_INDEX_RDONLY);
 	}
 
-	g_epoll->add_connect(this->bind->recv_pipe.read_fd(), xr::FD_TYPE_PIPE, NULL, 0);
+	g_epoll->add_connect(this->bind->recv_pipe.read_fd(), xr::FD_TYPE::PIPE, NULL, 0);
 
 	if (0 != g_epoll->listen(this->bind->ip.c_str(),
 		this->bind->port, g_config->listen_num, g_config->page_size_max)){
@@ -71,7 +71,7 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 			ALERT_LOG("mcast.create err[ip:%s]", g_config->mcast_ip.c_str());
 			return;
 		}else{
-			g_epoll->add_connect(xr::g_mcast->fd, xr::FD_TYPE_MCAST, 
+			g_epoll->add_connect(xr::g_mcast->fd, xr::FD_TYPE::MCAST, 
 				g_config->mcast_ip.c_str(), g_config->mcast_port);
 		}
 	}
@@ -87,7 +87,7 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 			ALERT_LOG("addr mcast.create err [ip:%s]", g_config->addr_mcast_ip.c_str());
 			return;
 		} else {
-			g_epoll->add_connect(g_addr_mcast->fd, xr::FD_TYPE_ADDR_MCAST, 
+			g_epoll->add_connect(g_addr_mcast->fd, xr::FD_TYPE::ADDR_MCAST, 
 				g_config->addr_mcast_ip.c_str(), g_config->addr_mcast_port);
 			g_addr_mcast->mcast_notify_addr();
 		}

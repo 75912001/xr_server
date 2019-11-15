@@ -22,8 +22,7 @@ namespace xr_server{
 		bind_t();
 	};
 
-	struct bind_mgr_t
-	{
+	struct bind_mgr_t{
 		std::vector<bind_t> bind_vec;
 		//加载配置文件
 		//returns:SUCC:success.负数:error

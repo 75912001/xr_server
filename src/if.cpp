@@ -37,7 +37,7 @@ xr::tcp_peer_t* connect( const std::string& ip, uint16_t port ){
 		return NULL;
 	}
 	TRACE_LOG("[ip:%s, port:%u, fd:%u]", ip.c_str(), port, fd);
-	return g_epoll->add_connect(fd, xr::FD_TYPE_SVR, ip.c_str(), port);
+	return g_epoll->add_connect(fd, xr::FD_TYPE::SERVER, ip.c_str(), port);
 }
 
 int send_ret(xr::tcp_peer_t* peer, xr_server::proto_head_t& proto_head, xr_server::PROTO_RET ret){

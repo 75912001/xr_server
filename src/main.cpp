@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 			} else if (pid > 0) {//父进程
 				xr_server::g_bind_mgr->bind_vec[i].recv_pipe.close(xr::E_PIPE_INDEX_RDONLY);
 				xr_server::g_bind_mgr->bind_vec[i].send_pipe.close(xr::E_PIPE_INDEX_WRONLY);
-				xr_server::g_epoll->add_connect(bind.send_pipe.read_fd(), xr::FD_TYPE_PIPE, NULL, 0);
+				xr_server::g_epoll->add_connect(bind.send_pipe.read_fd(), xr::FD_TYPE::PIPE, NULL, 0);
 				xr_server::g_parent->child_pids[i] = pid;
 			} else {
 				//子进程
