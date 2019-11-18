@@ -10,9 +10,10 @@
 #include <xr_multicast.h>
 #include "multicast.h"
 
-namespace xr_server{
-child_t* g_child;
-void child_t::run( struct bind_t* bind, int n_inited_bc )
+namespace xr_server
+{
+child_t *g_child;
+void child_t::run(struct bind_t *bind, int n_inited_bc)
 {
 	this->bind = bind;
 	g_is_parent = false;
@@ -21,7 +22,8 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 		xr::g_log = new xr::log_t;
 		std::string pre_name = xr::T2string(this->bind->id) + "_";
 		int ret = xr::g_log->init(g_config->log_dir.c_str(), (xr::E_LOG_LEVEL)g_config->log_level, pre_name.c_str(), g_config->log_save_next_file_interval_min);
-		if (SUCC != ret){
+		if (SUCC != ret)
+		{
 			std::cout << "??? log init" << std::endl;
 			return;
 		}
@@ -33,13 +35,15 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 	SAFE_DELETE(g_epoll);
 	{
 		g_epoll = new xr_server::epoll_t;
-		if (SUCC != g_epoll->create()){
+		if (SUCC != g_epoll->create())
+		{
 			std::cout << "??? epoll_t::create" << std::endl;
 			return;
 		}
 	}
 
-	for (int i = 0; i != n_inited_bc; ++i ) {
+	for (int i = 0; i != n_inited_bc; ++i)
+	{
 		g_bind_mgr->bind_vec[i].recv_pipe.close(xr::E_PIPE_INDEX_WRONLY);
 		g_bind_mgr->bind_vec[i].send_pipe.close(xr::E_PIPE_INDEX_RDONLY);
 	}
@@ -47,14 +51,16 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 	g_epoll->add_connect(this->bind->recv_pipe.read_fd(), xr::FD_TYPE::PIPE, NULL, 0);
 
 	if (0 != g_epoll->listen(this->bind->ip.c_str(),
-		this->bind->port, g_config->listen_num, g_config->page_size_max)){
+							 this->bind->port, g_config->listen_num, g_config->page_size_max))
+	{
 		xr::g_log->boot(ERR, 0, "server listen err [ip:%s, port:%u]", this->bind->ip.c_str(), this->bind->port);
 		return;
 	}
 	xr::g_log->boot(SUCC, 0, "server listen [ip:%s, port:%u]", this->bind->ip.c_str(), this->bind->port);
 
 #ifndef EL_ASYNC_USE_THREAD
-	if ( SUCC != g_dll->on_tcp_srv.on_init()) {
+	if (SUCC != g_dll->on_tcp_srv.on_init())
+	{
 		ALERT_LOG("FAIL TO INIT WORKER PROCESS. [id=%u, name=%s]", this->bind->id, this->bind->name.c_str());
 		goto fail;
 	}
@@ -64,15 +70,19 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 		xr::g_mcast = new xr::mcast_t;
 	}
 	//创建组播
-	if (!g_config->mcast_ip.empty()){
-		if (SUCC != xr::g_mcast->create(g_config->mcast_ip.c_str(), 
-			g_config->mcast_port, g_config->mcast_in_if.c_str(),
-			g_config->mcast_out_if.c_str())){
+	if (!g_config->mcast_ip.empty())
+	{
+		if (SUCC != xr::g_mcast->create(g_config->mcast_ip.c_str(),
+										g_config->mcast_port, g_config->mcast_in_if.c_str(),
+										g_config->mcast_out_if.c_str()))
+		{
 			ALERT_LOG("mcast.create err[ip:%s]", g_config->mcast_ip.c_str());
 			return;
-		}else{
-			g_epoll->add_connect(xr::g_mcast->fd, xr::FD_TYPE::MCAST, 
-				g_config->mcast_ip.c_str(), g_config->mcast_port);
+		}
+		else
+		{
+			g_epoll->add_connect(xr::g_mcast->fd, xr::FD_TYPE::MCAST,
+								 g_config->mcast_ip.c_str(), g_config->mcast_port);
 		}
 	}
 
@@ -80,20 +90,24 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 	{
 		g_addr_mcast = new addr_mcast_t;
 	}
-	if (!g_config->addr_mcast_ip.empty()){
+	if (!g_config->addr_mcast_ip.empty())
+	{
 		if (SUCC != g_addr_mcast->create(g_config->addr_mcast_ip.c_str(),
-			g_config->addr_mcast_port, g_config->addr_mcast_in_if.c_str(),
-			g_config->addr_mcast_out_if.c_str())){
+										 g_config->addr_mcast_port, g_config->addr_mcast_in_if.c_str(),
+										 g_config->addr_mcast_out_if.c_str()))
+		{
 			ALERT_LOG("addr mcast.create err [ip:%s]", g_config->addr_mcast_ip.c_str());
 			return;
-		} else {
-			g_epoll->add_connect(g_addr_mcast->fd, xr::FD_TYPE::ADDR_MCAST, 
-				g_config->addr_mcast_ip.c_str(), g_config->addr_mcast_port);
+		}
+		else
+		{
+			g_epoll->add_connect(g_addr_mcast->fd, xr::FD_TYPE::ADDR_MCAST,
+								 g_config->addr_mcast_ip.c_str(), g_config->addr_mcast_port);
 			g_addr_mcast->mcast_notify_addr();
 		}
 	}
 
-#ifdef EL_ASYNC_USE_THREAD	
+#ifdef EL_ASYNC_USE_THREAD
 	g_service_logic = new el_async::service_logic_thread_t;
 	g_service_logic->start(NULL);
 #endif
@@ -104,7 +118,7 @@ void child_t::run( struct bind_t* bind, int n_inited_bc )
 #ifdef EL_ASYNC_USE_THREAD
 	SAFE_DELETE(g_service_logic);
 #endif
-#ifndef EL_ASYNC_USE_THREAD	
+#ifndef EL_ASYNC_USE_THREAD
 fail:
 #endif
 	SAFE_DELETE(g_addr_mcast);
@@ -114,4 +128,4 @@ fail:
 	SAFE_DELETE(xr::g_log);
 	exit(0);
 }
-}
+} // namespace xr_server

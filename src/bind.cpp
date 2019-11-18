@@ -4,12 +4,14 @@
 
 #include "bind.h"
 
-namespace {
-	const char* s_bind_path =  "./bind.xml";
-}//end of namespace
+namespace
+{
+const char *s_bind_path = "./bind.xml";
+} //end of namespace
 
-namespace xr_server{
-bind_mgr_t* g_bind_mgr;
+namespace xr_server
+{
+bind_mgr_t *g_bind_mgr;
 bind_t::bind_t()
 {
 	this->id = 0;
@@ -20,7 +22,8 @@ bind_t::bind_t()
 int bind_mgr_t::load()
 {
 	xr::xml_t xml;
-	if (0 != xml.open(s_bind_path)){
+	if (0 != xml.open(s_bind_path))
+	{
 		BOOT_LOG(FAIL, "open file [%s]", s_bind_path);
 		return FAIL;
 	}
@@ -28,9 +31,11 @@ int bind_mgr_t::load()
 	xml.move2children_node();
 	xmlNodePtr cur = xml.node_ptr;
 
-	while(cur != NULL){
+	while (cur != NULL)
+	{
 		//取出节点中的内容
-		if (!xmlStrcmp(cur->name, (const xmlChar *)"server")){
+		if (!xmlStrcmp(cur->name, (const xmlChar *)"server"))
+		{
 			bind_t bind;
 			bind.id = xml.get_prop(cur, "id");
 			xml.get_prop(cur, "name", bind.name);
@@ -43,4 +48,4 @@ int bind_mgr_t::load()
 	}
 	return SUCC;
 }
-}//end namespace xr_server
+} //end namespace xr_server

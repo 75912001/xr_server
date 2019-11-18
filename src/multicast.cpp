@@ -6,22 +6,24 @@
 #include <xr_log.h>
 #include "child.h"
 
-namespace{
-	const uint32_t ADDR_MCAST_SYN_TIME_OUT_SEC = 60;//同步地址超时秒数
-}//end namespace 
+namespace
+{
+const uint32_t ADDR_MCAST_SYN_TIME_OUT_SEC = 60; //同步地址超时秒数
+} //end namespace
 
-namespace xr_server{
-addr_mcast_t* g_addr_mcast;
+namespace xr_server
+{
+addr_mcast_t *g_addr_mcast;
 mcast_pkg_header_t::mcast_pkg_header_t()
 {
 	this->cmd = 0;
 }
 
-void addr_mcast_t::mcast_notify_addr( E_MCAST_CMD pkg_type )
+void addr_mcast_t::mcast_notify_addr(E_MCAST_CMD pkg_type)
 {
 	mcast_cmd_addr_syn_t pkg;
 	mcast_pkg_header_t hdr;
-	char* data = new char[sizeof(hdr) + sizeof(pkg)];
+	char *data = new char[sizeof(hdr) + sizeof(pkg)];
 	hdr.cmd = pkg_type;
 	pkg.svr_id = g_child->bind->id;
 	::strncpy(pkg.name, g_child->bind->name.c_str(), std::min(sizeof(pkg.name), g_child->bind->name.size()));
@@ -37,26 +39,35 @@ void addr_mcast_t::mcast_notify_addr( E_MCAST_CMD pkg_type )
 
 void addr_mcast_t::syn()
 {
-	if (this->syn_sec < xr::g_timer->now_sec()){
+	if (this->syn_sec < xr::g_timer->now_sec())
+	{
 		//清理过期的地址同步信息
 		auto it = this->addr_mcast_map.begin();
-		for (; this->addr_mcast_map.end() != it;){
+		for (; this->addr_mcast_map.end() != it;)
+		{
 			std::string svr_name = it->first;
-			ADDR_MCAST_SVR_MAP& info = it->second;
-			for (auto it2 = info.begin(); info.end() != it2;){
+			ADDR_MCAST_SVR_MAP &info = it->second;
+			for (auto it2 = info.begin(); info.end() != it2;)
+			{
 				uint32_t svr_id = it2->first;
-				addr_mcast_pkg_t& syn = it2->second;
-				if ((xr::g_timer->now_sec() - syn.syn_time) > ADDR_MCAST_SYN_TIME_OUT_SEC){
+				addr_mcast_pkg_t &syn = it2->second;
+				if ((xr::g_timer->now_sec() - syn.syn_time) > ADDR_MCAST_SYN_TIME_OUT_SEC)
+				{
 					g_dll->on_tcp_srv.on_addr_mcast_pkg(svr_id, svr_name.c_str(),
-						syn.ip, syn.port, syn.data, 0);
+														syn.ip, syn.port, syn.data, 0);
 					info.erase(it2++);
-				} else {
+				}
+				else
+				{
 					it2++;
 				}
 			}
-			if (info.empty()){
+			if (info.empty())
+			{
 				this->addr_mcast_map.erase(it++);
-			} else {
+			}
+			else
+			{
 				it++;
 			}
 		}
@@ -64,7 +75,8 @@ void addr_mcast_t::syn()
 	}
 
 	//定时广播自己的地址信息
-	if (this->next_notify_sec < (int32_t)xr::g_timer->now_sec()){
+	if (this->next_notify_sec < (int32_t)xr::g_timer->now_sec())
+	{
 		this->mcast_notify_addr();
 	}
 }
@@ -76,40 +88,42 @@ addr_mcast_t::addr_mcast_t()
 	::srand(::getpid());
 }
 
-void addr_mcast_t::handle_msg(xr::active_buf_t& recv_buf)
+void addr_mcast_t::handle_msg(xr::active_buf_t &recv_buf)
 {
-	mcast_pkg_header_t* hdr = (mcast_pkg_header_t*)recv_buf.data;
-	mcast_cmd_addr_syn_t* add_mcast_info = (mcast_cmd_addr_syn_t*)hdr->get_body();
+	mcast_pkg_header_t *hdr = (mcast_pkg_header_t *)recv_buf.data;
+	mcast_cmd_addr_syn_t *add_mcast_info = (mcast_cmd_addr_syn_t *)hdr->get_body();
 	std::string strname = add_mcast_info->name;
-	if (strname == g_child->bind->name
-		&& add_mcast_info->svr_id == g_child->bind->id){
+	if (strname == g_child->bind->name && add_mcast_info->svr_id == g_child->bind->id)
+	{
 		return;
 	}
 	auto it = this->addr_mcast_map.find(strname);
 	switch (hdr->cmd)
 	{
 	case MCAST_CMD_ADDR_SYN:
+	{
+		if (this->addr_mcast_map.end() != it && it->second.end() != it->second.find(add_mcast_info->svr_id))
 		{
-			if (this->addr_mcast_map.end() != it
-				&& it->second.end() != it->second.find(add_mcast_info->svr_id)){
-				addr_mcast_pkg_t& syn_info = it->second[add_mcast_info->svr_id];
-				syn_info.syn_time = xr::g_timer->now_sec();
-			} else {
-				this->add_svr_info(*add_mcast_info);
-				this->mcast_notify_addr();
-			}
-			g_dll->on_tcp_srv.on_addr_mcast_pkg(add_mcast_info->svr_id, 
-				add_mcast_info->name, add_mcast_info->ip, add_mcast_info->port, add_mcast_info->data, 1);
+			addr_mcast_pkg_t &syn_info = it->second[add_mcast_info->svr_id];
+			syn_info.syn_time = xr::g_timer->now_sec();
 		}
-		break;
+		else
+		{
+			this->add_svr_info(*add_mcast_info);
+			this->mcast_notify_addr();
+		}
+		g_dll->on_tcp_srv.on_addr_mcast_pkg(add_mcast_info->svr_id,
+											add_mcast_info->name, add_mcast_info->ip, add_mcast_info->port, add_mcast_info->data, 1);
+	}
+	break;
 	default:
 		ERROR_LOG("cmd:%#x, ip:%s, name:%s, port:%u, id:%u", hdr->cmd,
-			add_mcast_info->ip, add_mcast_info->name, add_mcast_info->port, add_mcast_info->svr_id);
+				  add_mcast_info->ip, add_mcast_info->name, add_mcast_info->port, add_mcast_info->svr_id);
 		break;
 	}
 }
 
-void addr_mcast_t::add_svr_info( mcast_cmd_addr_syn_t& svr )
+void addr_mcast_t::add_svr_info(mcast_cmd_addr_syn_t &svr)
 {
 	addr_mcast_pkg_t amp;
 	strcpy(amp.ip, svr.ip);
@@ -143,4 +157,4 @@ addr_mcast_t::addr_mcast_pkg_t::addr_mcast_pkg_t()
 	::memset(this->ip, 0, sizeof(this->ip));
 	this->syn_time = xr::g_timer->now_sec();
 }
-}
+} // namespace xr_server
