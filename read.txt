@@ -1,0 +1,1 @@
+#export XR_SERVER_PATH='/home/meng/xr_server'

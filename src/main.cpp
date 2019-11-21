@@ -45,11 +45,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	{
-		xr_server::g_parent = new xr_server::parent_t;
-		xr_server::g_parent->child_pids = new std::atomic_int[xr_server::g_bind_mgr->bind_vec.size()];
-		xr_server::g_parent->prase_args(argc, argv);
-	}
-	{
 		xr::g_log = new xr::log_t;
 		int ret = xr::g_log->init(xr_server::g_config->log_dir.c_str(),
 								  (xr::E_LOG_LEVEL)xr_server::g_config->log_level, "parent_",
@@ -60,6 +55,12 @@ int main(int argc, char *argv[])
 			return FAIL;
 		}
 	}
+	{
+		xr_server::g_parent = new xr_server::parent_t;
+		xr_server::g_parent->child_pids = new std::atomic_int[xr_server::g_bind_mgr->bind_vec.size()];std::cout << "11" << std::endl;
+		xr_server::g_parent->prase_args(argc, argv);
+	}
+
 	{
 		xr::g_timer = new xr::timer_t;
 	}
